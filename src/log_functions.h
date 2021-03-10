@@ -17,4 +17,7 @@ double negbin_marginal(R_xlen_t k, double *Theta)
 double noObs(R_xlen_t k, double *Theta)
 {return k * log(1-Theta[0]);}
 
+double COMP(R_xlen_t k, double *Theta)
+{return k * log(Theta[0]) - Theta[1] * lgamma(k+1);}
+
 #endif
