@@ -9,7 +9,7 @@ COMP_lpdf <- function(k, theta){
   )
 }
 
-test_that("Conway-Maxwell with lambda = 1/2 and nu = 1", {
+test_that("Conway-Maxwell with lambda = 20 and nu = 1", {
   Lambda <- 20
   Nu <- 1
   Theta <- c(Lambda, Nu)
@@ -21,7 +21,7 @@ test_that("Conway-Maxwell with lambda = 1/2 and nu = 1", {
   expect_true(abs(error) <= Eps)
 })
 
-test_that("Conway-Maxwell with lambda = 1/2 and nu = 2", {
+test_that("Conway-Maxwell with lambda = 20 and nu = 2", {
   Lambda <- 20
   Nu <- 2
   Theta <- c(Lambda, Nu)
