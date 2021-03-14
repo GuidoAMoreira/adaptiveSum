@@ -1,8 +1,4 @@
-#' Test function
-#'
-#' Wraps the adapt_sum C function for testing
-#' @importFrom matrixStats logSumExp
-#' @export
+
 adapt_sum <- function(lFun, params = numeric(), eps = 1e-15, maxIter = 1e5,
                       logL = -Inf, n0 = 0){
 
@@ -16,11 +12,14 @@ adapt_sum <- function(lFun, params = numeric(), eps = 1e-15, maxIter = 1e5,
       out = .Call("adapt_sum_callPrecomp",
                   1L, params, eps, maxIter, logL, n0,
                   PACKAGE = "adaptiveSum")
-    else if (lFun == "noObs"){
+    else if (lFun == "noObs")
         out = .Call("adapt_sum_callPrecomp",
                     2L, params, eps, maxIter, logL, n0,
                     PACKAGE = "adaptiveSum")
-    }
+    else if (lFun == "COMP")
+      out = .Call("adapt_sum_callPrecomp",
+                  3L, params, eps, maxIter, logL, n0,
+                  PACKAGE = "adaptiveSum")
   } else if(is.function(lFun)) {
     f <- function(k, Theta) lFun(k, Theta)
 

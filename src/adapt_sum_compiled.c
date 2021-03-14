@@ -65,6 +65,9 @@ SEXP adapt_sum_callPrecomp(SEXP lF, SEXP params, SEXP epsilon, SEXP maxIter,
   case 2:
     return adapt_sum_precomp(noObs,REAL(params),REAL(epsilon)[0],
                              INTEGER(maxIter)[0],REAL(logL)[0],INTEGER(n0)[0]);
+  case 3:
+    return adapt_sum_precomp(COMP,REAL(params),REAL(epsilon)[0],
+                             INTEGER(maxIter)[0],REAL(logL)[0],INTEGER(n0)[0]);
   default:
     error("No implemented logFunction found.");
   }
