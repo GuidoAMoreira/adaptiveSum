@@ -1,7 +1,7 @@
 #include "adapt_sum.h"
 
-SEXP adapt_sum(SEXP logFun, SEXP params, SEXP epsilon, SEXP maxIter_,
-               SEXP logL_, SEXP n0_, SEXP rho)
+SEXP naive_sum(SEXP logFun, SEXP params, SEXP epsilon, SEXP maxIter_,
+               SEXP n0_, SEXP rho)
 {
   // Error checking
   if(!isReal(params)) error("'params' must be a vector");
@@ -12,9 +12,10 @@ SEXP adapt_sum(SEXP logFun, SEXP params, SEXP epsilon, SEXP maxIter_,
   SEXP result = PROTECT(allocVector(REALSXP, maxIter+1)),
     i_SEXP = PROTECT(allocVector(INTSXP,1));
   double *logFunVal = REAL(result);
-  double lEps = log(REAL(epsilon)[0]) + log(2), logL = REAL(logL_)[0], logap1;
+  double lEps = log(REAL(epsilon)[0]);
   defineVar(install("Theta"), params, rho);
 
+  // Finding function max. Only check convergence after max is reached
   INTEGER(i_SEXP)[0] = n0;
   defineVar(install("k"), i_SEXP, rho);
   logFunVal[n] = feval(logFun,rho);
@@ -24,8 +25,8 @@ SEXP adapt_sum(SEXP logFun, SEXP params, SEXP epsilon, SEXP maxIter_,
     defineVar(install("k"), i_SEXP, rho);
     logFunVal[++n] = feval(logFun,rho);
   } while (!R_FINITE(logFunVal[n]) ||
-             (logFunVal[n] >= logFunVal[n - 1] &&
-             n <= (maxIter - 1)));
+    (logFunVal[n] >= logFunVal[n - 1] &&
+    n <= (maxIter - 1)));
 
   // If too many iterations
   if (n == maxIter)
@@ -35,13 +36,13 @@ SEXP adapt_sum(SEXP logFun, SEXP params, SEXP epsilon, SEXP maxIter_,
     return retFun(result, maxIter_);
   }
 
+  // Now for the convergence checking
   do
   {
     INTEGER(i_SEXP)[0] = ++n0;
     defineVar(install("k"), i_SEXP, rho);
     logFunVal[++n] = feval(logFun,rho);
-  } while ((delta(logz(logFunVal[n - 1], logFunVal[n]),
-                 logFunVal[n], logL) >= lEps) & (n < maxIter));
+  } while ((logFunVal[n] >= lEps) & (n < maxIter));
 
   // If too many iterations
   if (n == maxIter)
@@ -51,11 +52,7 @@ SEXP adapt_sum(SEXP logFun, SEXP params, SEXP epsilon, SEXP maxIter_,
     return retFun(result, maxIter_);
   }
 
-  logap1 = logFunVal[n];
-  logFunVal[n] = logz(logFunVal[n - 1], logap1) - log(2);
-  logFunVal[n + 1] = logap1 - log_diff_exp(0, logL) - log(2);
-
-  INTEGER(i_SEXP)[0] = n;
+  INTEGER(i_SEXP)[0] = n + 1;
   UNPROTECT(2);
   return retFun(result, i_SEXP);
 }

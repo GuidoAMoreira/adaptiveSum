@@ -7,11 +7,11 @@
 
 // Some macros
 static inline double logz(double loga, double logap1)
-{return logap1 - log_diff_exp(0,logap1 - loga);}
+{return logap1 - log_diff_exp(0, logap1 - loga);}
 
-static inline double delta(double logz, double loga, double logr)
+static inline double delta(double logz, double loga, double logl)
 {
-  double ls = loga + logr;
+  double ls = loga - log_diff_exp(0, logl);
   return (logz>ls?log_diff_exp(logz,ls):log_diff_exp(ls,logz));
 }
 
@@ -28,6 +28,7 @@ static inline SEXP retFun(SEXP res, SEXP mI)
   return out;
 }
 
+//// Adaptive functions ////
 // Calculating the adaptive sum method with known L
 SEXP adapt_sum(SEXP logFun, SEXP params, SEXP epsilon, SEXP maxIter_, SEXP logL_,
                SEXP n0_, SEXP rho);
@@ -38,8 +39,21 @@ SEXP adapt_sum_precomp(double logFun(R_xlen_t k, double *Theta),
                        R_xlen_t maxIter, double logL, R_xlen_t n0);
 
 // Wrapper function for the pre-compiled code
-
 SEXP adapt_sum_callPrecomp(SEXP lF, SEXP params, SEXP epsilon, SEXP maxIter,
                            SEXP logL, SEXP n0);
+
+//// Naive functions ////
+// Calculating the adaptive sum method with known L
+SEXP naive_sum(SEXP logFun, SEXP params, SEXP epsilon, SEXP maxIter_,
+               SEXP n0_, SEXP rho);
+
+// Calculating the adaptive sum method with known L - pre-compiled code
+SEXP naive_sum_precomp(double logFun(R_xlen_t k, double *Theta),
+                       double *params, double eps,
+                       R_xlen_t maxIter, R_xlen_t n0);
+
+// Wrapper function for the pre-compiled code
+SEXP naive_sum_callPrecomp(SEXP lF, SEXP params, SEXP epsilon, SEXP maxIter,
+                           SEXP n0);
 
 #endif
