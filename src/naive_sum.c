@@ -1,3 +1,4 @@
+#include <Rinternals.h>
 #include "adapt_sum.h"
 
 SEXP naive_sum(SEXP logFun, SEXP params, SEXP epsilon, SEXP maxIter_,
@@ -9,20 +10,17 @@ SEXP naive_sum(SEXP logFun, SEXP params, SEXP epsilon, SEXP maxIter_,
 
   // Setting up
   R_xlen_t maxIter = INTEGER(maxIter_)[0], n0 = INTEGER(n0_)[0], n = 0;
-  SEXP result = PROTECT(allocVector(REALSXP, maxIter+1)),
-    i_SEXP = PROTECT(allocVector(INTSXP,1));
-  double *logFunVal = REAL(result);
-  double lEps = log(REAL(epsilon)[0]);
+  long double logFunVal[maxIter + 1], lEps = log(REAL(epsilon)[0]), maxA,
+    total;
   defineVar(install("Theta"), params, rho);
 
   // Finding function max. Only check convergence after max is reached
-  INTEGER(i_SEXP)[0] = n0;
-  defineVar(install("k"), i_SEXP, rho);
+  defineVar(install("k"), Rf_ScalarInteger(n0), rho);
   logFunVal[n] = feval(logFun,rho);
+  maxA = logFunVal[n];
   do
   {
-    INTEGER(i_SEXP)[0] = ++n0;
-    defineVar(install("k"), i_SEXP, rho);
+    defineVar(install("k"), Rf_ScalarInteger(++n0), rho);
     logFunVal[++n] = feval(logFun,rho);
   } while (!R_FINITE(logFunVal[n]) ||
     (logFunVal[n] >= logFunVal[n - 1] &&
@@ -30,29 +28,24 @@ SEXP naive_sum(SEXP logFun, SEXP params, SEXP epsilon, SEXP maxIter_,
 
   // If too many iterations
   if (n == maxIter)
-  {
-    logFunVal[maxIter] = 1;
-    UNPROTECT(2);
-    return retFun(result, maxIter_);
-  }
+    return retFun(logFunVal[n - 1] +
+                  log1p(partial_logSumExp(logFunVal, maxIter - 1,
+                                          logFunVal[n - 1])),
+                                          maxIter);
 
-  // Now for the convergence checking
+  // I know which is the max due to the stop criteria.
+  // Assumed local max = global max.
+  maxA = logFunVal[n - 1];
+  total = partial_logSumExp(logFunVal, n - 2, maxA);
+  total += exp(logFunVal[n] - maxA);
+
+  // Now for the convergence checking. Only loop once.
   do
   {
-    INTEGER(i_SEXP)[0] = ++n0;
-    defineVar(install("k"), i_SEXP, rho);
+    defineVar(install("k"), Rf_ScalarInteger(++n0), rho);
     logFunVal[++n] = feval(logFun,rho);
+    total += exp(logFunVal[n] - maxA);
   } while ((logFunVal[n] >= lEps) & (n < maxIter));
 
-  // If too many iterations
-  if (n == maxIter)
-  {
-    logFunVal[maxIter] = 1;
-    UNPROTECT(2);
-    return retFun(result, maxIter_);
-  }
-
-  INTEGER(i_SEXP)[0] = n + 1;
-  UNPROTECT(2);
-  return retFun(result, i_SEXP);
+  return retFun(maxA + log1p(total), n);
 }

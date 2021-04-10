@@ -1,50 +1,51 @@
+#include <Rinternals.h>
 #include "adapt_sum.h"
 #include "log_functions.h"
 
-SEXP naive_sum_precomp(double logFun(R_xlen_t k, double *Theta),
+SEXP naive_sum_precomp(long double logFun(R_xlen_t k, double *Theta),
                        double *params, double eps,
                        R_xlen_t maxIter, R_xlen_t n0)
 {
   // Declaration
-  SEXP result = PROTECT(allocVector(REALSXP, maxIter+1)),
-    i_SEXP = PROTECT(allocVector(INTSXP,1));
   R_xlen_t n = 0;
-  double *logFunVal = REAL(result), lEps = log(eps);
+  long double maxA, lEps = log(eps), logFunVal[maxIter], total;
 
   // Find the maximum
   logFunVal[n] = logFun(n0, params);
+  maxA = logFunVal[n];
   do
-  {logFunVal[++n] = logFun(++n0, params);}
+    logFunVal[++n] = logFun(++n0, params);
   while (!R_FINITE(logFunVal[n]) ||
          (logFunVal[n] >= logFunVal[n - 1] &&
          n <= (maxIter - 1)));
 
   // If too many iterations
   if (n == maxIter)
-  {
-    logFunVal[maxIter] = 1;
-    INTEGER(i_SEXP)[0] = maxIter;
-    UNPROTECT(2);
-    return retFun(result, i_SEXP);
-  }
+    return retFun(logFunVal[n - 1] +
+                  log1p(partial_logSumExp(logFunVal, maxIter - 1,
+                                          logFunVal[n - 1])),
+                                          maxIter);
 
-  // Calculate the tail
+  // I know which is the max due to the stop criteria.
+  // Assumed local max = global max.
+  // Remove the max to add later.
+  maxA = logFunVal[n - 1];
+  total = partial_logSumExp(logFunVal, n - 2, maxA);
+  total += exp(logFunVal[n] - maxA);
+
+  // Calculate the tail. Only loop once.
   do
-  {logFunVal[++n] = logFun(++n0, params);}
+  {
+    logFunVal[++n] = logFun(++n0, params);
+    total += exp(logFunVal[n] - maxA);
+  }
   while ((logFunVal[n] >= lEps) & (n <= (maxIter - 1)));
 
   // If too many iterations
   if (n == maxIter)
-  {
-    logFunVal[maxIter] = 1;
-    INTEGER(i_SEXP)[0] = maxIter;
-    UNPROTECT(2);
-    return retFun(result, i_SEXP);
-  }
+    return retFun(maxA + log1p(total), maxIter);
 
-  INTEGER(i_SEXP)[0] = n + 1;
-  UNPROTECT(2);
-  return retFun(result, i_SEXP);
+  return retFun(maxA + log1p(total), n);
 }
 
 SEXP naive_sum_callPrecomp(SEXP lF, SEXP params, SEXP epsilon, SEXP maxIter,
