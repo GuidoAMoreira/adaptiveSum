@@ -61,9 +61,7 @@ naive_sum <- function(lFun, params = numeric(), eps = 1e-15, maxIter = 1e5,
     return(list(sum = 0, n = 0))
   }
 
-  n = out[[2]]
-  list(sum = matrixStats::logSumExp(out[[1]][1:n]),
-       n = n,
-       out = out)
+  list(sum = out[[1]],
+       n = out[[2]])
 
 }
