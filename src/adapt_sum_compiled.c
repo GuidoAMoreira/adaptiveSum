@@ -1,4 +1,5 @@
 #include <Rinternals.h>
+#include "mathFun.h"
 #include "adapt_sum.h"
 #include "log_functions.h"
 
@@ -9,34 +10,36 @@ SEXP adapt_sum_precomp(long double logFun(R_xlen_t k, double *Theta),
   // Declaration
   R_xlen_t n = 0;
   long double maxA, logFunVal[maxIter + 1], lEps = log(eps) + log(2), total,
-    log1mL = log_diff_exp(0, logL);
+    log1mL = Rf_logspace_sub(0, logL);
 
   // Find the maximum
+  // Finding function max. Only check convergence after max is reached
   logFunVal[n] = logFun(n0, params);
+  while (!R_FINITE(logFunVal[n]))
+    logFunVal[++n] = logFun(++n0, params);
+
   do
     logFunVal[++n] = logFun(++n0, params);
-  while (!R_FINITE(logFunVal[n]) ||
-         (logFunVal[n] >= logFunVal[n - 1] &&
-         n <= (maxIter - 1)));
+  while (logFunVal[n] >= logFunVal[n - 1] && n <= (maxIter - 1));
 
-  // If too many iterations
+  // If too many iterations. Last iter is max.
   if (n == maxIter)
-    return retFun(logFunVal[n - 1] +
+    return retFun(logFunVal[n] +
                   log1p(partial_logSumExp(logFunVal, maxIter - 1,
-                                          logFunVal[n - 1])),
+                                          logFunVal[n])),
                                           maxIter);
 
   // I know which is the max due to the stop criteria.
   // Assumed local max = global max.
-  // Remove the max to add later.
-  maxA = logFunVal[n - 1];
-  total = partial_logSumExp(logFunVal, n - 2, maxA);
+  // 20 added to make calculations with more precision.
+  maxA = logFunVal[n - 1] + 20;
+  total = partial_logSumExp(logFunVal, n - 1, maxA);
 
   // Calculate the tail. Only loop once.
   do
   {
+    total += exp(logFunVal[n] - maxA);
     logFunVal[++n] = logFun(++n0, params);
-    total += exp(logFunVal[n - 1] - maxA);
   }
   while ((delta(logz(logFunVal[n - 1], logFunVal[n]),
                   logFunVal[n], log1mL) >= lEps) & (n <= (maxIter - 1)));
@@ -45,7 +48,7 @@ SEXP adapt_sum_precomp(long double logFun(R_xlen_t k, double *Theta),
   total += exp(logz(logFunVal[n - 1], logFunVal[n]) - log(2) - maxA) +
     exp(logFunVal[n] - log1mL - log(2) - maxA);
 
-  return retFun(maxA + log1p(total), n);
+  return retFun(maxA + log(total), n);
 }
 
 SEXP adapt_sum_callPrecomp(SEXP lF, SEXP params, SEXP epsilon, SEXP maxIter,

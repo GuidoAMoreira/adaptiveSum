@@ -1,6 +1,6 @@
 #include <R.h>
 #include <Rinternals.h>
-#include "math.h"
+#include <Rmath.h>
 #include "mathFun.h"
 
 // To add functions implementations, they must be written here with the
@@ -12,6 +12,7 @@
 double Rf_dnbinom(double x, double size, double prob, int give_log);
 double Rf_dbinom(double x, double n, double p, int give_log);
 double Rf_dpois(double x, double lambda, int give_log);
+double Rf_lgamma1p(double);
 
 long double negbin_marginal(R_xlen_t k, double *Theta)
 {
@@ -25,7 +26,7 @@ long double noObs(R_xlen_t k, double *Theta)
 {return k * log1p(-Theta[0]);}
 
 long double COMP(R_xlen_t k, double *Theta)
-{return k * log(Theta[0]) - Theta[1] * lgamma(k+1);}
+{return k * log(Theta[0]) - Theta[1] * Rf_lgamma1p(k);}
 
 long double dR0(R_xlen_t k, double *Theta)
 {
@@ -33,8 +34,8 @@ long double dR0(R_xlen_t k, double *Theta)
   if (k == 0 || k < x) {return -INFINITY;}
   else
   {
-    double wy = Theta[1] * k, wyym1 = wy + k - 1;
-    return lgamma(wyym1) - (lgamma(wy) + lgamma(k+1)) + ((k-1) * (log(Theta[0])-
+    long double wy = Theta[1] * k, wyym1 = wy + k - 1;
+    return lgamma(wyym1) - (lgamma(wy) + Rf_lgamma1p(k)) + ((k-1) * (log(Theta[0])-
                   log(Theta[1])) - wyym1 * log1p(Theta[0]/Theta[1])) +
                   Rf_dbinom(x, k, Theta[3], 1);
   }
@@ -42,7 +43,7 @@ long double dR0(R_xlen_t k, double *Theta)
 
 long double powerLawDiff(R_xlen_t k, double *Theta)
 {return (k<Theta[1] ? -INFINITY :
-           -Theta[0] * log(k) + log_diff_exp(0,
+           -Theta[0] * log(k) + Rf_logspace_sub(0,
                            -Theta[2] - Theta[3] * (k - Theta[1])));}
 
 long double negbin_sentinel(R_xlen_t k, double *Theta)
@@ -58,9 +59,9 @@ long double poisson_sentinel(R_xlen_t k, double *Theta)
 }
 
 long double weird_series_constL(R_xlen_t k, double *Theta)
-{return (k==0 ? -INFINITY : -(2*log(k) + k * log(Theta[0])));}
+{return (k == 0 ? -INFINITY : -(2 * log(k) + k * log(Theta[0])));}
 
 long double weird_series(R_xlen_t k, double *Theta)
-{return (k==0 ? -INFINITY : lgamma(k+1) - k * log(k));}
+{return (k == 0 ? -INFINITY : Rf_lgamma1p(k) - k * log(k));}
 
 

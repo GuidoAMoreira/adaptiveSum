@@ -1,5 +1,6 @@
 #include <Rinternals.h>
 #include "adapt_sum.h"
+#include "mathFun.h"
 #include "log_functions.h"
 
 SEXP naive_sum_precomp(long double logFun(R_xlen_t k, double *Theta),
@@ -8,30 +9,29 @@ SEXP naive_sum_precomp(long double logFun(R_xlen_t k, double *Theta),
 {
   // Declaration
   R_xlen_t n = 0;
-  long double maxA, lEps = log(eps), logFunVal[maxIter], total;
+  long double maxA, lEps = log(eps), logFunVal[maxIter + 1], total;
 
-  // Find the maximum
+  // Finding function max. Only check convergence after max is reached
   logFunVal[n] = logFun(n0, params);
-  maxA = logFunVal[n];
+  while (!R_FINITE(logFunVal[n]))
+    logFunVal[++n] = logFun(++n0, params);
+
   do
     logFunVal[++n] = logFun(++n0, params);
-  while (!R_FINITE(logFunVal[n]) ||
-         (logFunVal[n] >= logFunVal[n - 1] &&
-         n <= (maxIter - 1)));
+  while (logFunVal[n] >= logFunVal[n - 1] && n <= (maxIter - 1));
 
-  // If too many iterations
+  // If too many iterations. Last iter is max.
   if (n == maxIter)
-    return retFun(logFunVal[n - 1] +
+    return retFun(logFunVal[n] +
                   log1p(partial_logSumExp(logFunVal, maxIter - 1,
-                                          logFunVal[n - 1])),
+                                          logFunVal[n])),
                                           maxIter);
 
   // I know which is the max due to the stop criteria.
   // Assumed local max = global max.
-  // Remove the max to add later.
-  maxA = logFunVal[n - 1];
-  total = partial_logSumExp(logFunVal, n - 2, maxA);
-  total += exp(logFunVal[n] - maxA);
+  // 20 added to make calculations with more precision.
+  maxA = logFunVal[n - 1] + 20;
+  total = partial_logSumExp(logFunVal, n, maxA);
 
   // Calculate the tail. Only loop once.
   do
@@ -45,7 +45,7 @@ SEXP naive_sum_precomp(long double logFun(R_xlen_t k, double *Theta),
   if (n == maxIter)
     return retFun(maxA + log1p(total), maxIter);
 
-  return retFun(maxA + log1p(total), n);
+  return retFun(maxA + log(total), n);
 }
 
 SEXP naive_sum_callPrecomp(SEXP lF, SEXP params, SEXP epsilon, SEXP maxIter,

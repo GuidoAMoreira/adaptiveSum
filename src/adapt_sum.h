@@ -2,16 +2,18 @@
 #define __ADAPTIVE_APPROXIMATION_OF_INFINITE_SUM_H__
 
 #include <Rinternals.h>
-#include "mathFun.h"
+
+double Rf_logspace_sum(const double*, int);
+double Rf_logspace_sub(double, double);
 
 // Some macros
 static inline long double logz(double loga, double logap1)
-{return logap1 - log_diff_exp(0, logap1 - loga);}
+{return logap1 - Rf_logspace_sub(0, logap1 - loga);}
 
 static inline long double delta(double logz, double loga, double log1ml)
 {
   double ls = loga - log1ml;
-  return (logz > ls ? log_diff_exp(logz, ls) : log_diff_exp(ls, logz));
+  return (logz > ls ? Rf_logspace_sub(logz, ls) : Rf_logspace_sub(ls, logz));
 }
 
 static inline double feval(SEXP lF, SEXP rho)

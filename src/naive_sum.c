@@ -1,5 +1,6 @@
 #include <Rinternals.h>
 #include "adapt_sum.h"
+#include "mathFun.h"
 
 SEXP naive_sum(SEXP logFun, SEXP params, SEXP epsilon, SEXP maxIter_,
                SEXP n0_, SEXP rho)
@@ -17,14 +18,18 @@ SEXP naive_sum(SEXP logFun, SEXP params, SEXP epsilon, SEXP maxIter_,
   // Finding function max. Only check convergence after max is reached
   defineVar(install("k"), Rf_ScalarInteger(n0), rho);
   logFunVal[n] = feval(logFun,rho);
-  maxA = logFunVal[n];
+  while (!R_FINITE(logFunVal[n]))
+  {
+    defineVar(install("k"), Rf_ScalarInteger(++n0), rho);
+    logFunVal[++n] = feval(logFun,rho);
+  }
+
   do
   {
     defineVar(install("k"), Rf_ScalarInteger(++n0), rho);
     logFunVal[++n] = feval(logFun,rho);
-  } while (!R_FINITE(logFunVal[n]) ||
-    (logFunVal[n] >= logFunVal[n - 1] &&
-    n <= (maxIter - 1)));
+  }
+  while (logFunVal[n] >= logFunVal[n - 1] && n <= (maxIter - 1));
 
   // If too many iterations
   if (n == maxIter)
@@ -35,9 +40,9 @@ SEXP naive_sum(SEXP logFun, SEXP params, SEXP epsilon, SEXP maxIter_,
 
   // I know which is the max due to the stop criteria.
   // Assumed local max = global max.
-  maxA = logFunVal[n - 1];
-  total = partial_logSumExp(logFunVal, n - 2, maxA);
-  total += exp(logFunVal[n] - maxA);
+  // 20 added to make calculations with more precision.
+  maxA = logFunVal[n - 1] + 20;
+  total = partial_logSumExp(logFunVal, n, maxA);
 
   // Now for the convergence checking. Only loop once.
   do
@@ -47,5 +52,5 @@ SEXP naive_sum(SEXP logFun, SEXP params, SEXP epsilon, SEXP maxIter_,
     total += exp(logFunVal[n] - maxA);
   } while ((logFunVal[n] >= lEps) & (n < maxIter));
 
-  return retFun(maxA + log1p(total), n);
+  return retFun(maxA + log(total), n);
 }
