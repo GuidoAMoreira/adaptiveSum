@@ -12,7 +12,6 @@
 double Rf_dnbinom(double x, double size, double prob, int give_log);
 double Rf_dbinom(double x, double n, double p, int give_log);
 double Rf_dpois(double x, double lambda, int give_log);
-double Rf_lgamma1p(double);
 
 long double negbin_marginal(R_xlen_t k, double *Theta)
 {
@@ -26,7 +25,7 @@ long double noObs(R_xlen_t k, double *Theta)
 {return k * log1p(-Theta[0]);}
 
 long double COMP(R_xlen_t k, double *Theta)
-{return k * log(Theta[0]) - Theta[1] * Rf_lgamma1p(k);}
+{return k * log(Theta[0]) - Theta[1] * lgamma1p(k);}
 
 long double dR0(R_xlen_t k, double *Theta)
 {

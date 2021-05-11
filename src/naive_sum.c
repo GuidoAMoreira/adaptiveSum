@@ -10,9 +10,9 @@ SEXP naive_sum(SEXP logFun, SEXP params, SEXP epsilon, SEXP maxIter_,
   if(!isEnvironment(rho)) error("'rho' should be an environment");
 
   // Setting up
-  R_xlen_t maxIter = INTEGER(maxIter_)[0], n0 = INTEGER(n0_)[0], n = 0;
+  R_xlen_t maxIter = INTEGER(maxIter_)[0], n0 = INTEGER(n0_)[0], n = 0, nMax;
   long double logFunVal[maxIter + 1], lEps = log(REAL(epsilon)[0]), maxA,
-    total;
+    total = 0., totalBack = 0., c = 0., cb = 0.;
   defineVar(install("Theta"), params, rho);
 
   // Finding function max. Only check convergence after max is reached
@@ -33,24 +33,25 @@ SEXP naive_sum(SEXP logFun, SEXP params, SEXP epsilon, SEXP maxIter_,
 
   // If too many iterations
   if (n == maxIter)
-    return retFun(logFunVal[n - 1] +
-                  log1p(partial_logSumExp(logFunVal, maxIter - 1,
-                                          logFunVal[n - 1])),
-                                          maxIter);
+  {
+    partial_logSumExp(logFunVal, maxIter - 1, logFunVal[n], &c, 0, &total);
+    return retFun(logFunVal[n] + log1p(total), maxIter);
+  }
 
   // I know which is the max due to the stop criteria.
   // Assumed local max = global max.
-  // 20 added to make calculations with more precision.
-  maxA = logFunVal[n - 1] + 20;
-  total = partial_logSumExp(logFunVal, n, maxA);
+  maxA = logFunVal[n - 1];
+  nMax = n;
+  if (n > 1)
+    partial_logSumExp(logFunVal, n - 2, maxA, &c, 0, &total);
 
-  // Now for the convergence checking. Only loop once.
+  // Now for the convergence checking.
   do
   {
     defineVar(install("k"), Rf_ScalarInteger(++n0), rho);
     logFunVal[++n] = feval(logFun,rho);
-    total += exp(logFunVal[n] - maxA);
   } while ((logFunVal[n] >= lEps) & (n < maxIter));
+  partial_logSumExp(&logFunVal[nMax], n - nMax, maxA, &cb, 1, &totalBack);
 
-  return retFun(maxA + log(total), n);
+  return retFun((double)(maxA) + log1pl(total + totalBack), n);
 }

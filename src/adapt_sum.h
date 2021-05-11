@@ -3,12 +3,15 @@
 
 #include <Rinternals.h>
 
+#define l2 0.69314718055994530941723212145817656831
+
 double Rf_logspace_sum(const double*, int);
 double Rf_logspace_sub(double, double);
+double Rf_log1pexp(double);
 
 // Some macros
 static inline long double logz(double loga, double logap1)
-{return logap1 - Rf_logspace_sub(0, logap1 - loga);}
+{return logap1 + loga - Rf_logspace_sub(loga, logap1);}
 
 static inline long double delta(double logz, double loga, double log1ml)
 {
@@ -19,7 +22,7 @@ static inline long double delta(double logz, double loga, double log1ml)
 static inline double feval(SEXP lF, SEXP rho)
 {return REAL(eval(lF, rho))[0];}
 
-static inline SEXP retFun(long double res, R_xlen_t mI)
+static inline SEXP retFun(double res, R_xlen_t mI)
 {
   SEXP out = PROTECT(allocVector(VECSXP,2));
   SET_VECTOR_ELT(out, 0, Rf_ScalarReal(res));

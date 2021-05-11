@@ -8,8 +8,9 @@ SEXP naive_sum_precomp(long double logFun(R_xlen_t k, double *Theta),
                        R_xlen_t maxIter, R_xlen_t n0)
 {
   // Declaration
-  R_xlen_t n = 0;
-  long double maxA, lEps = log(eps), logFunVal[maxIter + 1], total;
+  R_xlen_t n = 0, nMax;
+  long double maxA, lEps = log(eps), logFunVal[maxIter + 1], total = 0.,
+    totalBack = 0., c = 0., cb = 0.;
 
   // Finding function max. Only check convergence after max is reached
   logFunVal[n] = logFun(n0, params);
@@ -22,30 +23,25 @@ SEXP naive_sum_precomp(long double logFun(R_xlen_t k, double *Theta),
 
   // If too many iterations. Last iter is max.
   if (n == maxIter)
-    return retFun(logFunVal[n] +
-                  log1p(partial_logSumExp(logFunVal, maxIter - 1,
-                                          logFunVal[n])),
-                                          maxIter);
+  {
+    partial_logSumExp(logFunVal, maxIter - 1, logFunVal[n], &c, 0, &total);
+    return retFun(logFunVal[n] + log1p(total), maxIter);
+  }
 
   // I know which is the max due to the stop criteria.
   // Assumed local max = global max.
-  // 20 added to make calculations with more precision.
-  maxA = logFunVal[n - 1] + 20;
-  total = partial_logSumExp(logFunVal, n, maxA);
+  maxA = logFunVal[n - 1];
+  nMax = n;
+  if (n > 1)
+    partial_logSumExp(logFunVal, n - 2, maxA, &c, 0, &total);
 
   // Calculate the tail. Only loop once.
   do
-  {
     logFunVal[++n] = logFun(++n0, params);
-    total += exp(logFunVal[n] - maxA);
-  }
   while ((logFunVal[n] >= lEps) & (n <= (maxIter - 1)));
+  partial_logSumExp(&logFunVal[nMax], n - nMax, maxA, &cb, 1, &totalBack);
 
-  // If too many iterations
-  if (n == maxIter)
-    return retFun(maxA + log1p(total), maxIter);
-
-  return retFun(maxA + log(total), n);
+  return retFun((double)(maxA) + log1pl(total + totalBack), n);
 }
 
 SEXP naive_sum_callPrecomp(SEXP lF, SEXP params, SEXP epsilon, SEXP maxIter,

@@ -3,8 +3,17 @@
 
 #include <Rinternals.h>
 
-// Auxiliary functions roughly copied from the stan header files
+void partial_logSumExp(long double*, R_xlen_t, long double,
+                       long double*, int, long double*);
 
-long double partial_logSumExp(long double* fun, R_xlen_t til, long double maxA);
+// This function helps reduce the floating point rounding error.
+static inline void KahanSum(long double* tot, long double x, long double* c)
+{
+  long double t, y;
+  y = x - *c;
+  t = *tot + y;
+  *c = t - *tot - y;
+  *tot = t;
+}
 
 #endif
