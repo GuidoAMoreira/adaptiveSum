@@ -4,7 +4,7 @@ CXXFLAGS +=           -O3 -Wall -pipe -Wno-unused -pedantic
 #VER=-4.6
 #VER=-4.7
 VER=-4.8
-#CC=ccache gcc$(VER)
+CC=ccache gcc$(VER)
 CXX=ccache g++$(VER)
 SHLIB_CXXLD=g++$(VER)
 FC=ccache gfortran
@@ -12,4 +12,4 @@ F77=ccache gfortran
 MAKE=make -j8
 
 #CXX=clang++
-CC=clang
+#CC=clang
