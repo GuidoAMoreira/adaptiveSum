@@ -1,4 +1,7 @@
-
+#' Test function
+#'
+#' Wraps the adapt_sum C function for testing
+#' @export
 adapt_sum <- function(lFun, params = numeric(), eps = 1e-15, maxIter = 1e5,
                       logL = -Inf, n0 = 0){
 
