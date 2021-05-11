@@ -1,3 +1,15 @@
-CXX_STD = CXX11
-PKG_CXXFLAGS = -w $(SHLIB_OPENMP_CXXFLAGS)
-PKG_LIBS = -w $(SHLIB_OPENMP_CXXFLAGS)
+CFLAGS +=             -O3 -Wall -pipe -pedantic -std=gnu99
+CXXFLAGS +=           -O3 -Wall -pipe -Wno-unused -pedantic
+
+#VER=-4.6
+#VER=-4.7
+VER=-4.8
+#CC=ccache gcc$(VER)
+CXX=ccache gcc$(VER)
+SHLIB_CXXLD=gcc$(VER)
+FC=ccache gfortran
+F77=ccache gfortran
+MAKE=make -j8
+
+#CXX=clang++
+CC=clang
